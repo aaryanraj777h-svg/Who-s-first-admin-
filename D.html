@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Who's first - Admin</title>
+<style>
+:root{--bg:#171433;--card:#241f4d;--ac:#ffd23f;--tx:#f5f3ff;--mu:#a49fd0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 "Trebuchet MS",Verdana,sans-serif}
+#v{padding:18px 16px 60px;max-width:600px;margin:auto}h1,h2{font-weight:900;margin:.3em 0}h1{font-size:2.2rem;color:var(--ac)}h2{margin-top:1.6em;border-bottom:2px solid #3a3470;padding-bottom:6px}
+.box{max-width:340px;margin:18vh auto;padding:0 20px;text-align:center}
+input,button{font:inherit;width:100%;padding:12px;margin:6px 0;border-radius:10px;border:2px solid #3a3470;background:var(--card);color:var(--tx)}
+button{background:var(--ac);color:#171433;font-weight:800;border:0;cursor:pointer}button.s{width:auto;padding:7px 10px;margin:2px;font-size:.8rem}
+.row{padding:10px 0;border-bottom:1px solid #3a3470}.mu{color:var(--mu)}.err{color:#ff8a8a}
+</style></head><body><div id="app"><div class="box"><h1>Who's first</h1><p class="mu">Admin</p><input placeholder="Username"><input type="password" placeholder="Password"><button>Log in</button><p id="st" class="err"></p></div></div><script>setTimeout(function(){var s=document.getElementById('st');if(s&&!window.__ok&&!s.textContent)s.textContent='App could not start. Open it from your https Vercel link in Chrome (not a file preview) and check internet.'},6000)</script>
+<script>
+(async()=>{
+const G="https://www.gstatic.com/firebasejs/10.12.2/",st=t=>{const s=document.getElementById('st');if(s)s.textContent=t};
+let F;try{F=await Promise.all(["firebase-app","firebase-auth","firebase-firestore"].map(n=>import(G+n+".js")))}catch(e){st('Could not load Firebase ('+(e.message||e)+'). Open this page from your https Vercel link in Chrome and check internet.');throw e}
+const{initializeApp}=F[0],{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged}=F[1],{initializeFirestore,doc,getDoc,setDoc,updateDoc,collection,query,where,onSnapshot,getDocs}=F[2];
+const CFG={apiKey:"AIzaSyBf1P8CAnOO82mZ732Y__Qc5GhZPtbmuoU",authDomain:"who-s-first-413b6.firebaseapp.com",projectId:"who-s-first-413b6",appId:"1:127926503365:web:daf066f2f3a9b032602dac"};
+const MODEL="google/gemini-2.5-flash"; // vision wala model; OpenRouter pe naam badal sakte ho
+const ap=initializeApp(CFG,'adm'),au=getAuth(ap),db=initializeFirestore(ap,{experimentalAutoDetectLongPolling:true});
+const $=s=>document.querySelector(s),A=$('#app'),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.__ok=1;const msg=e=>({'auth/operation-not-allowed':'Email/Password login is OFF. Turn it on in Firebase Authentication.','auth/invalid-credential':'Wrong username or password.','auth/wrong-password':'Wrong username or password.','auth/user-not-found':'This account does not exist yet. Create it in Firebase Authentication.','auth/invalid-email':'Invalid username.','auth/network-request-failed':'No internet connection.','auth/too-many-requests':'Too many tries. Wait a few minutes.','permission-denied':'Access denied. You may be blocked, or firestore.rules is not published in Firebase.','failed-precondition':'Firestore database is not created yet.','unavailable':'Cannot reach the database. Check internet.'})[e&&e.code]||'Error: '+(e&&(e.code||e.message));let me;
+function login(msg=''){A.innerHTML=`<div class=box><h1>Who's first</h1><p class=mu>Admin</p><input id=u placeholder="Username" autocapitalize=none><input id=p type=password placeholder="Password"><button id=go>Log in</button><p class=err>${msg}</p></div>`;
+$('#go').onclick=async()=>{try{await signInWithEmailAndPassword(au,'a_'+$('#u').value.trim().toLowerCase()+'@whosfirst.app',$('#p').value)}catch(e){login(msg(e))}}}
+onAuthStateChanged(au,async u=>{if(!u)return login();me=u.email.split('@')[0];if(!me.startsWith('a_')){await signOut(au);return login('Admins only.')}panel()});
+function panel(){A.innerHTML=`<div id=v><h1>Who's first</h1><p class=mu>Admin: ${esc(me.slice(2).toUpperCase())} <a href=# id=x style="color:var(--ac)">Log out</a></p>
+<h2>AI key</h2><p class=mu>OpenRouter key. Saved once, only admins can read it.</p><input id=k type=password placeholder="sk-or-v1-..."><button id=sk>Save key</button>
+<h2>New quiz</h2><input id=t placeholder="Quiz title"><input id=n type=number value=10 min=1 max=50><p class=mu style="margin:0">Number of questions (20 seconds each)</p>
+<input id=d type=datetime-local><p class=mu style="margin:0">Start time</p><input id=f type=file accept="image/*" multiple><p class=mu style="margin:0">Book page photos (2-3 at a time works best)</p>
+<button id=g>Generate and schedule</button><p id=gs></p>
+<h2>Results</h2><button id=fz>Publish scores for current quiz</button><p id=fs class=mu>Works after the quiz has ended.</p>
+<h2>Players</h2><div id=us></div></div>`;
+$('#x').onclick=e=>{e.preventDefault();signOut(au)};
+$('#sk').onclick=async()=>{await setDoc(doc(db,'cfg','ai'),{k:$('#k').value.trim()});$('#k').value='';alert('Key saved')};
+$('#g').onclick=gen;$('#fz').onclick=fin;
+onSnapshot(collection(db,'users'),s=>{$('#us').innerHTML=s.docs.map(d=>{const x=d.data(),b=x.status=='blocked'&&x.until>Date.now()?'blocked until '+new Date(x.until).toLocaleString():x.status=='removed'?'removed':'active';
+return`<div class=row><b>${esc(x.name)}</b> <span class=mu>${b}</span><br><button class=s data-i=${d.id} data-a=b>Block (hours)</button><button class=s data-i=${d.id} data-a=r>Remove</button><button class=s data-i=${d.id} data-a=o>Restore</button></div>`}).join('')||'<p class=mu>Players appear here after their first login.</p>';
+document.querySelectorAll('#us .s').forEach(b=>b.onclick=async()=>{const r=doc(db,'users',b.dataset.i),a=b.dataset.a;
+if(a=='b'){const h=+prompt('Block for how many hours?');if(h>0)await updateDoc(r,{status:'blocked',until:Date.now()+h*36e5})}
+else if(a=='r'){if(confirm('Remove permanently?'))await updateDoc(r,{status:'removed'})}else await updateDoc(r,{status:'active',until:0})})})}
+const img=f=>new Promise(r=>{const i=new Image();i.onload=()=>{const k=Math.min(1,1100/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',.8))};i.src=URL.createObjectURL(f)});
+async function gen(){const s=$('#gs'),n=+$('#n').value,t=$('#t').value.trim(),st=new Date($('#d').value).getTime(),fs=[...$('#f').files];
+if(!t||!n||!st||!fs.length)return s.textContent='Fill title, count, start time and add photos.';
+if(st<Date.now()+6e4)return s.textContent='Pick a start time at least 1 minute from now.';
+try{s.textContent='Reading the book pages...';const kd=await getDoc(doc(db,'cfg','ai'));if(!kd.exists())throw new Error('Save the AI key first.');const key=kd.data().k,ims=await Promise.all(fs.map(img));
+const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,messages:[{role:'user',content:[{type:'text',text:`Read these book pages and write exactly ${n} multiple-choice questions from their content. Reply with JSON only, no other text: {"items":[{"q":"question","o":["A","B","C","D"],"a":0}]} where "a" is the index (0-3) of the correct option.`},...ims.map(u=>({type:'image_url',image_url:{url:u}}))]}]})});
+const j=await r.json();if(!j.choices)throw new Error(j.error&&j.error.message||'AI gave no answer');const tx=j.choices[0].message.content,it=JSON.parse(tx.slice(tx.indexOf('{'),tx.lastIndexOf('}')+1)).items.slice(0,n);
+const id='q'+Date.now();
+await setDoc(doc(db,'qs',id),{items:it.map(x=>({q:x.q,o:x.o}))});await setDoc(doc(db,'keys',id),{a:it.map(x=>x.a)});
+await setDoc(doc(db,'quiz','cur'),{id,title:t,n:it.length,startAt:st});
+s.textContent=`Done. ${it.length} questions saved and hidden. Quiz starts ${new Date(st).toLocaleString()}.`}catch(e){s.innerHTML='<span class=err>Failed: '+esc(e.message||e)+'</span>'}}
+async function fin(){const s=$('#fs');try{const q=(await getDoc(doc(db,'quiz','cur'))).data(),k=(await getDoc(doc(db,'keys',q.id))).data().a;
+const as=await getDocs(query(collection(db,'ans'),where('q','==',q.id)));let c=0;
+for(const d of as.docs){const x=d.data();await setDoc(doc(db,'scores',q.id+'_'+x.u),{id:q.id,u:x.u,title:q.title,n:q.n,s:x.a.filter((v,i)=>v==k[i]).length,t:Date.now()});c++}
+s.textContent=`Scores published for ${c} players.`}catch(e){s.textContent='Not ready yet. Wait until the quiz has ended (plus a few seconds).'}}
+
+})().catch(function(e){var s=document.getElementById('st');if(s&&!s.textContent)s.textContent='Error: '+(e&&e.message||e)});
+</script></body></html>
