@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Who's First - Admin</title>
+<style>
+:root {
+  --bg: #0c0a18;
+  --surface: #16132b;
+  --card: #1e1a38;
+  --yellow: #ffd23f;
+  --yellow-soft: rgba(255, 210, 63, 0.12);
+  --text: #f4f4f6;
+  --muted: #8b8ba8;
+  --danger: #ff6b6b;
+  --success: #4ade80;
+  --border: rgba(255,255,255,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+.container { max-width: 480px; margin: 0 auto; padding: 24px 16px 40px; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: fadeUp 0.4s ease;
+}
+h1 {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin: 8px 0 4px;
+  background: linear-gradient(135deg, #fff, var(--yellow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.subtitle { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; color: var(--yellow); }
+input, textarea, select, button {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  margin: 6px 0;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px var(--yellow-soft);
+}
+button {
+  background: var(--yellow);
+  color: #111;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+button:hover { transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+button.danger { background: var(--danger); color: white; }
+.hidden { display: none !important; }
+.error { color: var(--danger); font-size: 14px; text-align: center; margin-top: 8px; }
+.success { color: var(--success); }
+.option-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.option-row input[type="text"] { flex: 1; margin: 0; }
+.option-row input[type="radio"] { width: 20px; height: 20px; accent-color: var(--yellow); }
+.progress { height: 4px; background: var(--surface); border-radius: 2px; margin: 12px 0; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--yellow); width: 0%; transition: width 0.3s; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+  <div id="loginScreen">
+    <h1>Admin</h1>
+    <p class="subtitle">Who's First Control</p>
+    <div class="card">
+      <input id="password" type="password" placeholder="Admin Password">
+      <button onclick="login()">Continue</button>
+      <div id="loginError" class="error"></div>
+    </div>
+  </div>
+
+  <div id="adminApp" class="hidden">
+    <h1>Admin Panel</h1>
+    <p class="subtitle">Logged in as <span id="adminName"></span></p>
+    <button onclick="logout()" class="secondary" style="margin-bottom:20px;">Logout</button>
+
+    <div class="card">
+      <h2>API Key</h2>
+      <input id="apiKeyInput" placeholder="OpenRouter API Key">
+      <button onclick="saveApiKey()">Save Key</button>
+      <div id="keyStatus" style="font-size:13px; margin-top:6px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Create Quiz</h2>
+      <input id="quizTitle" placeholder="Quiz Title">
+      <input id="quizN" type="number" min="1" max="20" value="5" placeholder="Number of questions">
+      <input id="startTime" type="datetime-local">
+      
+      <div style="margin:12px 0;">
+        <button onclick="startManual()">Create Questions Manually</button>
+      </div>
+      <div id="manualArea" class="hidden">
+        <div class="progress"><div class="progress-bar" id="prog"></div></div>
+        <p id="qCounter" style="text-align:center; color:var(--muted); margin-bottom:8px;">Question 1 of 5</p>
+        <textarea id="qText" rows="3" placeholder="Question likho"></textarea>
+        <div class="option-row"><input type="radio" name="correct" value="0"><input type="text" id="o0" placeholder="Option 1"></div>
+        <div class="option-row"><input type="radio" name="correct" value="1"><input type="text" id="o1" placeholder="Option 2"></div>
+        <div class="option-row"><input type="radio" name="correct" value="2"><input type="text" id="o2" placeholder="Option 3"></div>
+        <div class="option-row"><input type="radio" name="correct" value="3"><input type="text" id="o3" placeholder="Option 4"></div>
+        <button onclick="nextQuestion()" id="nextBtn">Next Question</button>
+      </div>
+
+      <div style="margin-top:16px;">
+        <input type="file" id="photoUpload" accept="image/*" multiple>
+        <button onclick="generateQuestions()" class="secondary">Generate from Photos (AI)</button>
+        <div id="genStatus" style="margin-top:8px; font-size:14px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Users</h2>
+      <div id="usersList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Publish Scores</h2>
+      <button onclick="publishScores()">Publish Scores</button>
+      <div id="scoreStatus" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBf1P8CAnOO82mZ732Y__Qc5GhZPtbmuoU",
+  authDomain: "who-s-first-413b6.firebaseapp.com",
+  projectId: "who-s-first-413b6",
+  storageBucket: "who-s-first-413b6.firebasestorage.app",
+  messagingSenderId: "127926503365",
+  appId: "1:127926503365:web:daf066f2f3a9b032602dac"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const ADMIN_ACCOUNTS = [
+  { pass: 'A1BOKY', email: 'a_aaryan7x0@whosfirst.app' },
+  { pass: 'AB42XJ', email: 'a_ayant41@whosfirst.app' }
+];
+
+let currentAdmin = '';
+let apiKey = '';
+let manualQuestions = [];
+let manualIndex = 0;
+let totalManual = 5;
+let currentQuizId = null;
+
+async function login() {
+  const password = document.getElementById('password').value.trim();
+  if (!password) return document.getElementById('loginError').textContent = 'Password daalo';
+  document.getElementById('loginError').textContent = 'Checking...';
+  for (const acc of ADMIN_ACCOUNTS) {
+    if (acc.pass.toLowerCase() === password.toLowerCase()) {
+      try {
+        await auth.signInWithEmailAndPassword(acc.email, acc.pass);
+        return;
+      } catch (e) {
+        document.getElementById('loginError').textContent = e.code || e.message;
+      }
+    }
+  }
+  document.getElementById('loginError').textContent = 'Galat password';
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentAdmin = user.email.split('@')[0].replace('a_', '').toUpperCase();
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('adminApp').classList.remove('hidden');
+    document.getElementById('adminName').textContent = currentAdmin;
+    loadApiKey();
+    loadUsers();
+  }
+});
+
+function logout() { auth.signOut(); location.reload(); }
+
+async function loadApiKey() {
+  const snap = await db.collection('cfg').doc('ai').get();
+  if (snap.exists) {
+    apiKey = snap.data().k || '';
+    document.getElementById('keyStatus').textContent = apiKey ? 'Key saved' : '';
+  }
+}
+
+async function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) return;
+  await db.collection('cfg').doc('ai').set({ k: key });
+  apiKey = key;
+  document.getElementById('keyStatus').textContent = 'Saved';
+  document.getElementById('apiKeyInput').value = '';
+}
+
+function startManual() {
+  totalManual = parseInt(document.getElementById('quizN').value) || 5;
+  manualQuestions = [];
+  manualIndex = 0;
+  document.getElementById('manualArea').classList.remove('hidden');
+  updateManualUI();
+}
+
+function updateManualUI() {
+  document.getElementById('qCounter').textContent = `Question ${manualIndex + 1} of ${totalManual}`;
+  document.getElementById('prog').style.width = ((manualIndex / totalManual) * 100) + '%';
+  document.getElementById('qText').value = '';
+  for (let i = 0; i < 4; i++) document.getElementById('o' + i).value = '';
+  document.querySelectorAll('input[name="correct"]').forEach(r => r.checked = false);
+  document.getElementById('nextBtn').textContent = manualIndex === totalManual - 1 ? 'Finish & Save' : 'Next Question';
+}
+
+function nextQuestion() {
+  const q = document.getElementById('qText').value.trim();
+  const o = [0,1,2,3].map(i => document.getElementById('o' + i).value.trim());
+  const correct = document.querySelector('input[name="correct"]:checked');
+  if (!q || o.some(x => !x) || !correct) {
+    alert('Question, sab options aur sahi answer select karo');
+    return;
+  }
+  manualQuestions.push({ q, o, a: parseInt(correct.value) });
+  manualIndex++;
+  if (manualIndex >= totalManual) {
+    document.getElementById('manualArea').classList.add('hidden');
+    generatedQuestions = manualQuestions;
+    document.getElementById('genStatus').innerHTML = '<span class="success">' + totalManual + ' questions ready. Ab Publish karo.</span>';
+    publishQuiz();
+  } else {
+    updateManualUI();
+  }
+}
+
+let generatedQuestions = null;
+
+function resizeImage(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > 800) { h = h * 800 / w; w = 800; }
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.7).split(',')[1]);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function generateQuestions() {
+  if (!apiKey) return document.getElementById('genStatus').textContent = 'Pehle API key save karo';
+  const files = document.getElementById('photoUpload').files;
+  if (!files.length) return document.getElementById('genStatus').textContent = 'Photos select karo';
+  document.getElementById('genStatus').textContent = 'Generating...';
+  try {
+    const images = [];
+    for (const f of Array.from(files).slice(0, 3)) images.push(await resizeImage(f));
+    const content = [{ type: "text", text: "Generate MCQ quiz from images. Return ONLY JSON array: [{q:'question', o:['a','b','c','d'], a:0}]. 5-12 questions." }];
+    images.forEach(b64 => content.push({ type: "image_url", image_url: { url: "data:image/jpeg;base64," + b64 } }));
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "user", content }] })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'API error');
+    const text = data.choices[0].message.content;
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No JSON');
+    generatedQuestions = JSON.parse(match[0]);
+    document.getElementById('genStatus').innerHTML = '<span class="success">' + generatedQuestions.length + ' questions generated</span>';
+  } catch (e) {
+    document.getElementById('genStatus').textContent = 'Error: ' + e.message;
+  }
+}
+
+async function publishQuiz() {
+  if (!generatedQuestions || !generatedQuestions.length) return alert('Pehle questions banao');
+  const title = document.getElementById('quizTitle').value.trim() || 'Quiz';
+  const n = generatedQuestions.length;
+  const startInput = document.getElementById('startTime').value;
+  const startAt = startInput ? new Date(startInput) : new Date(Date.now() + 30000);
+  currentQuizId = 'q_' + Date.now();
+  try {
+    await db.collection('qs').doc(currentQuizId).set({
+      items: generatedQuestions.map(q => ({ q: q.q, o: q.o }))
+    });
+    await db.collection('keys').doc(currentQuizId).set({
+      a: generatedQuestions.map(q => q.a)
+    });
+    await db.collection('quiz').doc('cur').set({
+      id: currentQuizId, title, n, startAt: firebase.firestore.Timestamp.fromDate(startAt)
+    });
+    document.getElementById('genStatus').innerHTML = '<span class="success">Quiz published!</span>';
+  } catch (e) {
+    alert('Publish error: ' + e.message);
+  }
+}
+
+async function loadUsers() {
+  const snap = await db.collection('users').get();
+  const el = document.getElementById('usersList');
+  el.innerHTML = '';
+  snap.forEach(doc => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);';
+    div.innerHTML = `<span>${doc.id}</span><div>
+      <button onclick="blockUser('${doc.id}')" style="width:auto;padding:6px 10px;margin:0 4px;font-size:12px;">Block</button>
+      <button onclick="restoreUser('${doc.id}')" class="secondary" style="width:auto;padding:6px 10px;font-size:12px;">Restore</button>
+    </div>`;
+    el.appendChild(div);
+  });
+}
+
+async function blockUser(id) {
+  if (id.startsWith('a_')) return alert('Admin nahi');
+  await db.collection('users').doc(id).update({ status: 'blocked' });
+  loadUsers();
+}
+async function restoreUser(id) {
+  await db.collection('users').doc(id).update({ status: 'active' });
+  loadUsers();
+}
+
+async function publishScores() {
+  const cur = await db.collection('quiz').doc('cur').get();
+  if (!cur.exists) return alert('No active quiz');
+  const qid = cur.data().id;
+  document.getElementById('scoreStatus').textContent = 'Calculating...';
+  try {
+    const keys = (await db.collection('keys').doc(qid).get()).data()?.a || [];
+    const ansSnap = await db.collection('ans').where('q', '==', qid).get();
+    const batch = db.batch();
+    ansSnap.forEach(doc => {
+      const data = doc.data();
+      let s = 0;
+      (data.a || []).forEach((ans, i) => { if (ans === keys[i]) s++; });
+      batch.set(db.collection('scores').doc(qid + '_' + data.u.toLowerCase()), {
+        id: qid, u: data.u, title: cur.data().title, n: keys.length, s, t: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    await batch.commit();
+    document.getElementById('scoreStatus').textContent = 'Scores published';
+  } catch (e) {
+    document.getElementById('scoreStatus').textContent = e.message;
+  }
+}
+</script>
+</body>
+</html>
